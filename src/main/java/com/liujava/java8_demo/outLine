@@ -1,0 +1,149 @@
+java8 Study Path
+1、lambda表达式
+2、函数式编程、函数式接口、默认方法
+3、streamApi
+4、并行处理数据
+5、CompletableFuture
+
+
+#####################################################################################################
+1、lambda表达式
+核心思想:行为参数化
+本质：函数式接口的匿名实现类
+
+lambda表达式基本写法：
+函数式接口<> = (入参) -> {执行体}
+
+手动构造一个lambda表达式
+
+
+简单总结：函数式接口规定了lambda表达式的入参类型、返回参数的类型，lambda表达式返回的是指定函数接口类型的对象实例
+          lambda 不关心实现的是那个函数式接口，只关心输入参数的类型、数量和输出类型,可以不用定义很多函数式接口
+
+注意点：
+lambda 中引用的 外部变量时,jdk默认添加了final关键字
+原因：lambda中实际上是新创建了一个同类型同名的变量，并把引用赋值给该变量，如果外部变量修改了，lambda中的引用不变会导致二义性
+
+lambda 中使用this关键字，指向的本类,内部类中的this是指向内部类
+原因：lambda方法其实是编译后在本类中生成的以lambda$数字命名的一个方法,是否有参数取决于lambda表达式有没有参数，有没有static关键字取决于
+      lambda方法中有没有this关键字
+      没有使用this关键字的是静态方法
+      使用this关键字的是非静态方法
+      使用javap -s -p 类名.class 可以查看是否静态方法
+
+
+#所有的成员方法,都有一个默认的的参数this(即使是无参的方法),只要是成员方法,编译器就会给你加上this这个参数如:
+#Class A中
+#void method1(){}实际上是这样的--------> void method1(A this)
+#void method2(int x){}实际上是这样的--------> void method2(A this, intx)
+#在一个类中定义一个方法为static，则为静态方法，那就是说，无需本类的对象即可调用此方法，调用一个静态方法就是“类名.方法名”
+#既然"无需本类的对象即可调用静态方法"，而this和super关键字都是用于本类对象的－－－－－调用静态方法无需本类的对象这句话很清楚表明：静态方法中不能用this和super关键字
+
+################################################################################################################################################################################
+
+2、函数式编程、函数式接口、默认方法
+
+函数式编程与命令是编程区别--关注点不同
+函数是编程关注实现什么功能
+命令式编程关注怎样做
+
+函数式接口
+新增特性
+1、函数式接口中有且只有一个需要实现的接口
+2、函数式接口都带有@FunctionalInterface注解,在编译时会校验接口中需要实现的接口数量
+3、函数式接口的设计思路：单一责任制，一个接口只做一件事
+4、函数式接口可以继承父类接口
+5、默认方法，函数式接口中，只能有一个要实现的方法，但是可以有多个有默认实现的方法，默认方法是用default关键字修饰的
+
+默认方法是jdk8中最重要的特性，以List接口为例，List接口从1.2版本之后直到1.8才有新增修改
+因为一个接口增加一个方法，所有实现这个接口的地方都要修改一遍，而增加默认方法不需要所有继承接口的地方都修改一遍
+默认方法在接口多级继承的时候是会被继承的
+
+
+java8中的重要函数接口
+Predicate、Consumer、Function、Supplier ……
+
+
+方法引用
+当lambda表达式的函数执行体里只有一个函数调用，而且函数的入参与lambda的入参相同，就可以把lambda表达式接简写成方法引用
+例如
+Supplier<ArrayList> supplier = ()->new ArrayList();
+Supplier<ArrayList> supplier1 = ArrayList::new;
+
+使用方法引用的大致思路
+判断要引用方法的入参个数、类型,返回值类型，选择合适函数式接口
+
+类型推断
+通过声明变量类型，告诉lambda要实现的接口
+通过强转
+通过方法返回类型
+
+#########################################################################################################################################################################################
+
+3、StreamApi
+
+Stream是一个高级的迭代器,可以高效的处理数据,不是数据结构，不可以存储数据
+
+StreamApi提供了一些处理数据的通用方法StreamApi分为中间操作、终止操作、惰性求值
+
+Stream常见的创建方式
+从集合、数组创建流
+从数字创建流
+generate、itrate创建流
+
+常见的一些方法
+map 底层实现是Function接口，可以将T类型映射成R类型
+flatMap flapMap是将流扁平化的方法，输入一个T类型，返回一个流
+filter 断言方法
+distinct 去重方法
+sorted 排序方法
+
+
+
+parallel()开启并行流
+sequential()关闭并行流
+
+如果在同一个流中调用parallel()后又调用sequential()是不会先并行在串行的
+原因：parallel()和sequential()只是更改Stream中的标志位，在终止操作开启时，会判断并行标志位为true还是false
+
+parallelStream使用的线程池是ForkJoinPool.commonPool
+ForkJoinPool.commonPool是jdk自带的，默认的线程数是当前机器的cpu个数
+使用这个方法可以修改默认线程数，System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism","20");
+
+所有的并行流都用同一个线程池就会有阻塞现象，所以最好用自己的线程池开启并行流
+
+stream运行机制
+Stream的底层是一个链式调用,断点流的过程可以发现，stream的实现类是java.util.stream.ReferencePipeline
+在stream属性里面有一个sourceStage
+每一个中间操作都会返回一个新的stream 指向同一个地方，指向链表的head，然后head指向nextStage-->nextStage-->..null
+
+############################################################################################################################################################################################
+
+CompletableFuture
+
+public class CompletableFuture<T> implements Future<T>, CompletionStage<T>
+
+CompletableFuture继承Future、CompletionStage
+
+创建异步方法
+static <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier);
+static <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier, Executor executor);
+static CompletableFuture<Void> runAsync(Runnable runnable);
+static CompletableFuture<Void> runAsync(Runnable runnable, Executor executor);
+
+then族方法
+<U> CompletableFuture<U> thenApply(Function<? super T,? extends U> fn);
+<U> CompletableFuture<U> thenApplyAsync(Function<? super T,? extends U> fn);
+<U> CompletableFuture<U> thenApplyAsync(Function<? super T,? extends U> fn, Executor executor);<p></p>
+
+thenCompose()
+
+thenCombine()
+
+
+
+
+
+
+
+
